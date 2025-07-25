@@ -14,18 +14,9 @@ public:
         float new_x = (pos2.x - pos1.x) * (pos2.x - pos1.x);
         float new_y = (pos2.y - pos1.y) * (pos2.y - pos1.y);
         float distance = std::sqrt(new_x + new_y);
-        //std::cout << "Distance: " << distance;
         return distance;
     }
-    /*
-    static Vector2 get_vector2_direction(Vector2 pos1, Vector2 pos2)
-    {
-        float length = distance_between_Vector2s(pos1, pos2);
-        Vector2 unit_vector = { pos1.x / length, pos1.y / length };
-        //std::cout << "Direction: {" << unit_vector.x << " , " << unit_vector.y << "}\n";
-        return unit_vector;
-    }
-    */
+    
     static Vector2 get_vector2_direction(Vector2 from, Vector2 to)
     {
         Vector2 delta = { to.x - from.x, to.y - from.y };
@@ -35,15 +26,11 @@ public:
         return unit_vector;
     }
 
-
-
-
     static Vector2 mirror_direction(Vector2 direction)
     {
         float x_direction = direction.x;
         float y_direction = direction.y;
         Vector2 inversed_direction = { y_direction, x_direction };
-        //std::cout << "Inversed Direction: {" << inversed_direction.x << " , " << inversed_direction.y << "}\n";
         return inversed_direction;
     }
     static Vector2 multiplication(Vector2 vec, float mult)
@@ -93,7 +80,6 @@ public:
     {
         DrawRing(position, radius, thickness, 0.0f, 360.0f, 100, BLACK);
     }
-    //CheckCollisionCircleLine(ring_center, (ring_radius + ring_thickness) / 2.0f, line_start, line_end)
     bool did_collide(Vector2 current_position, Vector2 previous_position)
     {
         return CheckCollisionCircleLine(position, (radius), current_position, previous_position);
@@ -128,7 +114,8 @@ public:
         Vector2 incident_ray = current_direction;
         Vector2 normal = (MathUtil::get_vector2_direction(reflecting_object_position, current_position )); //New Direction
 
-        //2-dotproduct(i,n)
+        //Main formula used in the simulation, mirrors the ray off of the rings
+        //i - 2-dotproduct(i,n) * n
 
         float product = (2 * MathUtil::dot_product(incident_ray, normal));                                          //Product Calculation
         Vector2 reflected_direction = MathUtil::sub(incident_ray, MathUtil::multiplication(normal, product));       //Finds the reflected direction
@@ -147,7 +134,6 @@ public:
     {
         for (size_t i = 1; i < laser_history.size(); i++)
         {
-            //DrawLine(line_start.x, line_start.y, line_end.x, line_end.y, RED);
             DrawLine(laser_history[i].x, laser_history[i].y, laser_history[i - 1].x, laser_history[i - 1].y, RED);
         }
     }
@@ -158,16 +144,13 @@ public:
 };
 
 
-
 void sim_loop(Laser& laser, std::vector<Circle>& circle_arr)
 {
     laser.extend_laser();
     laser.render_line();
     for (size_t i = 0; i < circle_arr.size(); i++)
     {
-        circle_arr[i].render();
-        //std::cout << "\nCollided\n" << "Laser_Size: " << laser.laser_history.size();
-        
+        circle_arr[i].render();        
         if (circle_arr[i].did_collide(laser.current_position, laser.laser_history[laser.laser_history.size() - 1]))
         {
             if (laser.last_hit != &circle_arr[i])
@@ -198,18 +181,18 @@ int main()
     const int screenHeight = 800;
     std::vector<Circle> circle_arr;
 
-    InitWindow(screenWidth, screenHeight, "raylib C++ Boilerplate"); // Initialize window with dimensions and title
+    InitWindow(screenWidth, screenHeight, "Laser-Simulation"); // Initialize window with dimensions and title
 
-    SetTargetFPS(240); // Set desired framerate (frames-per-second)
+    SetTargetFPS(60); // Set desired framerate (frames-per-second)
 
 
 
     float ring_thickness = 3.0f;
-    float ring_radius = 60.0f + ring_thickness;
+    float ring_radius = 20.0f + ring_thickness;
    
     
     
-    for (size_t i = 0; i < 15; i++)
+    for (size_t i = 0; i < 40; i++)
     {
         float random_offset = 300;
         Vector2 ring_center = { screenWidth / 2.0f + getRandomFloat(-random_offset, random_offset), screenHeight / 2.0f + getRandomFloat(-random_offset, random_offset)};
@@ -218,8 +201,7 @@ int main()
     
     float random_offset = 300;
     Vector2 ring_center = { screenWidth / 2.0f , screenHeight / 2.0f };
-    //circle_arr.push_back(Circle(0, ring_center, ring_radius));
-    circle_arr.erase(circle_arr.begin());
+    circle_arr.erase(circle_arr.begin()); //Combats a current bug where the first ring is solid black because radius is undefined for the first construction
     Vector2 laser_start = { 0, screenHeight / 2 };
     Vector2 laser_direction = { 1, 0};
 
@@ -240,7 +222,7 @@ int main()
         BeginDrawing(); // Start drawing
         ClearBackground(RAYWHITE); // Clear background with a color
 
-        DrawText("Congrats! You've set up raylib!", screenWidth/2-50, 20, 20, LIGHTGRAY); // Draw 
+        DrawText("Created with C++ and Raylib!", screenWidth/2-50, 10, 30, LIGHTGRAY); // Draw 
   
         //std::cout << "Size: " << circle_arr.size() << "\n";
       
