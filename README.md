@@ -1,4 +1,4 @@
-# Laser-Sim with C++ and Raylib
+# Laser-Sim with Raylib and C++ 
 
 <h>I saw a video on the internet of a program like this a couple years back and wanted to take a shot at it</h>
 
