@@ -3,6 +3,7 @@
 #include <vector>
 #include <iomanip>
 #include <cmath>
+#include <random>
 
 
 class MathUtil
@@ -16,19 +17,33 @@ public:
         //std::cout << "Distance: " << distance;
         return distance;
     }
+    /*
     static Vector2 get_vector2_direction(Vector2 pos1, Vector2 pos2)
     {
         float length = distance_between_Vector2s(pos1, pos2);
         Vector2 unit_vector = { pos1.x / length, pos1.y / length };
-        std::cout << "Direction: {" << unit_vector.x << " , " << unit_vector.y << "}\n";
+        //std::cout << "Direction: {" << unit_vector.x << " , " << unit_vector.y << "}\n";
         return unit_vector;
     }
+    */
+    static Vector2 get_vector2_direction(Vector2 from, Vector2 to)
+    {
+        Vector2 delta = { to.x - from.x, to.y - from.y };
+        float length = sqrtf(delta.x * delta.x + delta.y * delta.y);
+        if (length == 0.0f) return { 0.0f, 0.0f };
+        Vector2 unit_vector = { delta.x / length, delta.y / length };
+        return unit_vector;
+    }
+
+
+
+
     static Vector2 mirror_direction(Vector2 direction)
     {
         float x_direction = direction.x;
         float y_direction = direction.y;
         Vector2 inversed_direction = { y_direction, x_direction };
-        std::cout << "Inversed Direction: {" << inversed_direction.x << " , " << inversed_direction.y << "}\n";
+        //std::cout << "Inversed Direction: {" << inversed_direction.x << " , " << inversed_direction.y << "}\n";
         return inversed_direction;
     }
     static Vector2 multiplication(Vector2 vec, float mult)
@@ -42,6 +57,15 @@ public:
         Vector2 new_vec = { vec1.x + vec2.x, vec1.y + vec2.y };
         return new_vec;
     }
+    static Vector2 sub(Vector2 vec1, Vector2 vec2)
+    {
+        Vector2 new_vec = { vec1.x - vec2.x, vec1.y - vec2.y };
+        return new_vec;
+    }
+    static float dot_product(Vector2 vec1, Vector2 vec2)
+    {
+        return (vec1.x * vec2.x + vec1.y * vec2.y);
+    }
 
 };
 
@@ -52,7 +76,8 @@ public:
     int id;                     //ID for the vector
     Vector2 position;           //Position of the circle in worldspace
     float radius;
-    float thickness = 3.0f;
+    float thickness_offset = 3.0f;
+    float thickness = radius - thickness_offset;
     float diameter = radius * 2.0f;
     float start_angle = 0.0f;   // 0 -> 360 defines the full circle
     float end_angle = 360.0f;   // 0 -> 360 defines the full circle
@@ -71,7 +96,7 @@ public:
     //CheckCollisionCircleLine(ring_center, (ring_radius + ring_thickness) / 2.0f, line_start, line_end)
     bool did_collide(Vector2 current_position, Vector2 previous_position)
     {
-        return CheckCollisionCircleLine(position, (radius + thickness), current_position, previous_position);
+        return CheckCollisionCircleLine(position, (radius), current_position, previous_position);
     }
 };
 
@@ -83,9 +108,10 @@ public:
     Vector2 start_position;
     Vector2 current_position;
     Vector2 current_direction;
-    float step_value = 1.0f;     //This should translate to the number of pixels moved per tick
+    float step_value = 3.0f;     //This should translate to the number of pixels moved per tick
     Vector2 step;
     float energy;           //This is going to be the value which interacts with the reflectiveness inside the circle object
+    Circle* last_hit = nullptr;
     std::vector<Vector2> laser_history;         //Stores position  history
     std::vector<Vector2> direction_history;     //Stores direction history
     Laser(int laser_id, Vector2 laser_start_position, Vector2 laser_direction, float laser_energy)
@@ -97,11 +123,20 @@ public:
         energy = laser_energy;
         step = MathUtil::multiplication(current_direction, step_value);
     }
-    void reflect(Vector2 reflecting_object_position) //This method is going to take in the 
+    void reflect(Vector2& reflecting_object_position) //This method is going to take in the 
     {
-        Vector2 object_direction = (MathUtil::get_vector2_direction(reflecting_object_position, current_position));
-        direction_history.push_back(current_direction);
-        current_direction = MathUtil::mirror_direction(object_direction);
+        Vector2 incident_ray = current_direction;
+        Vector2 normal = (MathUtil::get_vector2_direction(reflecting_object_position, current_position )); //New Direction
+
+        //2-dotproduct(i,n)
+
+        float product = (2 * MathUtil::dot_product(incident_ray, normal));                                          //Product Calculation
+        Vector2 reflected_direction = MathUtil::sub(incident_ray, MathUtil::multiplication(normal, product));       //Finds the reflected direction
+        current_direction = reflected_direction;                        //Sets Direction
+
+        step = MathUtil::multiplication(current_direction, step_value); //Updates Step Direction
+
+
     }
     void extend_laser()
     {
@@ -110,27 +145,49 @@ public:
     }
     void render_line()
     {
-        for (size_t i = 0; i < laser_history.size(); i++)
+        for (size_t i = 1; i < laser_history.size(); i++)
         {
-            //Will render all of the laser's lines together
+            //DrawLine(line_start.x, line_start.y, line_end.x, line_end.y, RED);
+            DrawLine(laser_history[i].x, laser_history[i].y, laser_history[i - 1].x, laser_history[i - 1].y, RED);
         }
+    }
+    void set_last_hit(Circle* new_last_hit)
+    {
+        last_hit = new_last_hit;
     }
 };
 
 
-void sim_loop(Laser laser, std::vector<Circle> circle_arr)
+
+void sim_loop(Laser& laser, std::vector<Circle>& circle_arr)
 {
     laser.extend_laser();
+    laser.render_line();
     for (size_t i = 0; i < circle_arr.size(); i++)
     {
+        circle_arr[i].render();
+        //std::cout << "\nCollided\n" << "Laser_Size: " << laser.laser_history.size();
+        
         if (circle_arr[i].did_collide(laser.current_position, laser.laser_history[laser.laser_history.size() - 1]))
         {
-            std::cout << "Collided";
+            if (laser.last_hit != &circle_arr[i])
+            {
+                laser.reflect(circle_arr[i].position);
+                laser.set_last_hit(&circle_arr[i]);
+            }
         }
     }
-
-
+    
 }
+
+
+float getRandomFloat(float min, float max) {
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> dist(min, max);
+    return dist(gen);
+}
+
 
 
 int main()
@@ -138,19 +195,35 @@ int main()
     // Initialization
     //--------------------------------------------------------------------------------------
     const int screenWidth = 800;
-    const int screenHeight = 450;
+    const int screenHeight = 800;
     std::vector<Circle> circle_arr;
 
     InitWindow(screenWidth, screenHeight, "raylib C++ Boilerplate"); // Initialize window with dimensions and title
 
     SetTargetFPS(240); // Set desired framerate (frames-per-second)
 
-    
 
-    for (size_t i = 0; i < 5; i++)
+
+    float ring_thickness = 3.0f;
+    float ring_radius = 60.0f + ring_thickness;
+   
+    
+    
+    for (size_t i = 0; i < 15; i++)
     {
-        //circle_arr.push_back(Circle(0, ring_center, ring_radius));
+        float random_offset = 300;
+        Vector2 ring_center = { screenWidth / 2.0f + getRandomFloat(-random_offset, random_offset), screenHeight / 2.0f + getRandomFloat(-random_offset, random_offset)};
+        circle_arr.push_back(Circle(int(i), ring_center, ring_radius));
     }
+    
+    float random_offset = 300;
+    Vector2 ring_center = { screenWidth / 2.0f , screenHeight / 2.0f };
+    //circle_arr.push_back(Circle(0, ring_center, ring_radius));
+    circle_arr.erase(circle_arr.begin());
+    Vector2 laser_start = { 0, screenHeight / 2 };
+    Vector2 laser_direction = { 1, 0};
+
+    Laser laser = Laser(0, laser_start, laser_direction, 1);
 
     //--------------------------------------------------------------------------------------
 
@@ -167,41 +240,12 @@ int main()
         BeginDrawing(); // Start drawing
         ClearBackground(RAYWHITE); // Clear background with a color
 
-        DrawText("Congrats! You've set up raylib!", 190, 200, 20, LIGHTGRAY); // Draw 
-        //void DrawRing(Vector2 center, float innerRadius, float outerRadius, float startAngle, float endAngle, int segments, Color color); // Draw ring
-        Vector2 ring_center = { screenWidth / 2.0f, screenHeight / 2.0f };
-        float ring_radius = 60.0f;
-        float ring_thickness = 3.0f + ring_radius;
-        Vector2 line_start{ 0, screenHeight / 2.0f };
-        Vector2 line_end{ screenWidth / 2.0f + 100.0f, screenHeight / 2.0f };
-
-
+        DrawText("Congrats! You've set up raylib!", screenWidth/2-50, 20, 20, LIGHTGRAY); // Draw 
+  
         //std::cout << "Size: " << circle_arr.size() << "\n";
-        //DrawRing(ring_center, ring_radius, ring_thickness, 0.0f, 360.0f, 100, BLACK);
-        //bool CheckCollisionCircleLine(Vector2 center, float radius, Vector2 p1, Vector2 p2);               // Check if circle collides with a line created betweeen two points [p1] and [p2]
-        //DrawLine(line_start.x, line_start.y, line_end.x, line_end.y, RED);
-        //std::cout << "Collision Detected: " << CheckCollisionCircleLine(ring_center, (ring_radius + ring_thickness) / 2.0f, line_start, line_end) << "\n";
-        /*
-        Vector2 pos1 = { 2.0f, 1.0f };
-        Vector2 pos2 = { 3.0f, 4.0f };
-        MathUtil::distance_between_Vector2s(pos1, pos2);
-        Vector2 direction = MathUtil::get_vector2_direction(pos1, pos2);
-        MathUtil::mirror_direction(direction);
-
-
-
-
-        Laser(int laser_id, Vector2 laser_start_position, Vector2 laser_direction, float circle_energy)
-
-        */
-
-        Vector2 laser_start = { 0, screenHeight / 2 };
-        Vector2 laser_direction = { 0,-1 };
-        Laser laser = Laser(0, laser_start, laser_direction, 1);
-
+      
         sim_loop(laser, circle_arr);
 
-        //DrawText(, 190, 230, 20, BLACK);
         DrawFPS(5, 0);
 
         EndDrawing(); // End drawing and swap buffers
