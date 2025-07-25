@@ -150,7 +150,7 @@ void sim_loop(Laser& laser, std::vector<Circle>& circle_arr)
     laser.render_line();
     for (size_t i = 0; i < circle_arr.size(); i++)
     {
-        circle_arr[i].render();        
+        //circle_arr[i].render();        
         if (circle_arr[i].did_collide(laser.current_position, laser.laser_history[laser.laser_history.size() - 1]))
         {
             if (laser.last_hit != &circle_arr[i])
@@ -172,6 +172,14 @@ float getRandomFloat(float min, float max) {
 }
 
 
+void render_loop (Laser& laser, std::vector<Circle>& circle_arr)
+{
+    for (size_t i = 0; i < circle_arr.size(); i++)
+    {
+        circle_arr[i].render();
+    }
+}
+
 
 int main()
 {
@@ -185,27 +193,31 @@ int main()
 
     SetTargetFPS(60); // Set desired framerate (frames-per-second)
 
+    bool simulation_running = false; //Used to start the simulation 
+
 
 
     float ring_thickness = 3.0f;
     float ring_radius = 20.0f + ring_thickness;
-   
     
-    
+    /*
     for (size_t i = 0; i < 40; i++)
     {
         float random_offset = 300;
         Vector2 ring_center = { screenWidth / 2.0f + getRandomFloat(-random_offset, random_offset), screenHeight / 2.0f + getRandomFloat(-random_offset, random_offset)};
         circle_arr.push_back(Circle(int(i), ring_center, ring_radius));
     }
-    
+    */
     float random_offset = 300;
     Vector2 ring_center = { screenWidth / 2.0f , screenHeight / 2.0f };
-    circle_arr.erase(circle_arr.begin()); //Combats a current bug where the first ring is solid black because radius is undefined for the first construction
+    //circle_arr.erase(circle_arr.begin()); //Combats a current bug where the first ring is solid black because radius is undefined for the first construction
+
     Vector2 laser_start = { 0, screenHeight / 2 };
     Vector2 laser_direction = { 1, 0};
 
     Laser laser = Laser(0, laser_start, laser_direction, 1);
+
+
 
     //--------------------------------------------------------------------------------------
 
@@ -223,10 +235,51 @@ int main()
         ClearBackground(RAYWHITE); // Clear background with a color
 
         DrawText("Created with C++ and Raylib!", screenWidth/2-50, 10, 30, LIGHTGRAY); // Draw 
-  
+        render_loop(laser, circle_arr);
+
+        /*
+        if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+            DrawText("Left mouse button is being held down!", 100, 100, 20, RED);
+        }
+        else {
+            DrawText("Left mouse button is not pressed.", 100, 100, 20, DARKGRAY);
+        }
+
+        */
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+        {
+            DrawText("Left mouse button is being held down!", 100, 100, 20, RED);
+            circle_arr.push_back(Circle(circle_arr.size(), GetMousePosition(), ring_radius));
+        }
+        if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
+        {
+            for (size_t i = 0; i < circle_arr.size();)
+            {
+                Vector2 mouse_pos = GetMousePosition();
+                //circle_arr[i].render();        
+
+                if (circle_arr[i].did_collide(mouse_pos, mouse_pos))
+                {
+                    circle_arr.erase(circle_arr.begin()+ i);
+                }
+                else
+                {
+                    ++i;
+                }
+            }
+        }
+        if (IsKeyDown(KEY_SPACE))
+        {
+            simulation_running = !simulation_running;
+        }
+
+
         //std::cout << "Size: " << circle_arr.size() << "\n";
+        if (simulation_running)
+        {
+            sim_loop(laser, circle_arr);
+        }
       
-        sim_loop(laser, circle_arr);
 
         DrawFPS(5, 0);
 
