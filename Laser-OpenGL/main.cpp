@@ -62,7 +62,7 @@ class Circle
 public:
     int id;                     //ID for the vector
     Vector2 position;           //Position of the circle in worldspace
-    float radius;
+    float radius = 30;
     float thickness_offset = 3.0f;
     float thickness = radius - thickness_offset;
     float diameter = radius * 2.0f;
@@ -94,9 +94,15 @@ public:
     Vector2 start_position;
     Vector2 current_position;
     Vector2 current_direction;
-    float step_value = 3.0f;     //This should translate to the number of pixels moved per tick
+
+    Vector2 original_direction; //Store Values for Reset
+    Vector2 original_position;  //Store Values for Reset
+
+    float step_value = 1.0f;     //This should translate to the number of pixels moved per tick
     Vector2 step;
-    float energy;           //This is going to be the value which interacts with the reflectiveness inside the circle object
+    float energy = 1000;           //This is going to be the value which interacts with the reflectiveness inside the circle object
+    float original_energy = energy;
+    float radiation = 1;
     Circle* last_hit = nullptr;
     std::vector<Vector2> laser_history;         //Stores position  history
     std::vector<Vector2> direction_history;     //Stores direction history
@@ -104,8 +110,12 @@ public:
     {
         id = laser_id;
         start_position = laser_start_position;
+
+        original_position = laser_start_position;
         current_position = start_position;
         current_direction = laser_direction;
+
+        original_direction = current_direction;
         energy = laser_energy;
         step = MathUtil::multiplication(current_direction, step_value);
     }
@@ -122,14 +132,15 @@ public:
         current_direction = reflected_direction;                        //Sets Direction
 
         step = MathUtil::multiplication(current_direction, step_value); //Updates Step Direction
-
-
     }
+
     void extend_laser()
     {
         laser_history.push_back(current_position);
         current_position = MathUtil::add(current_position, step);
+        energy = energy - radiation;
     }
+
     void render_line()
     {
         for (size_t i = 1; i < laser_history.size(); i++)
@@ -141,13 +152,24 @@ public:
     {
         last_hit = new_last_hit;
     }
+
+    void reset_laser()
+    {
+        current_direction = original_direction;
+        current_position = original_position;
+        laser_history.clear();
+        direction_history.clear();
+        energy = 100000;
+        step = MathUtil::multiplication(current_direction, step_value);
+        last_hit = nullptr;
+    }
 };
 
-
+//Uses linear logic, laser extends sequentially not at the "Speed of Light"
 void sim_loop(Laser& laser, std::vector<Circle>& circle_arr)
 {
     laser.extend_laser();
-    laser.render_line();
+    //laser.render_line();
     for (size_t i = 0; i < circle_arr.size(); i++)
     {
         //circle_arr[i].render();        
@@ -157,10 +179,20 @@ void sim_loop(Laser& laser, std::vector<Circle>& circle_arr)
             {
                 laser.reflect(circle_arr[i].position);
                 laser.set_last_hit(&circle_arr[i]);
+                std::cout << "Reflected" << "\n";
             }
         }
     }
-    
+}
+
+
+void render_entire_loop(Laser& laser, std::vector<Circle>& circle_arr)
+{
+    laser.reset_laser();
+    while (laser.energy > 0)
+    {
+        sim_loop(laser, circle_arr);
+    }
 }
 
 
@@ -178,7 +210,11 @@ void render_loop (Laser& laser, std::vector<Circle>& circle_arr)
     {
         circle_arr[i].render();
     }
+    laser.render_line();
 }
+
+
+
 
 
 int main()
@@ -273,11 +309,12 @@ int main()
             simulation_running = !simulation_running;
         }
 
+        render_entire_loop(laser, circle_arr);
 
         //std::cout << "Size: " << circle_arr.size() << "\n";
         if (simulation_running)
         {
-            sim_loop(laser, circle_arr);
+            //sim_loop(laser, circle_arr);
         }
       
 
