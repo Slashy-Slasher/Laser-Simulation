@@ -94,13 +94,12 @@ public:
     Vector2 start_position;
     Vector2 current_position;
     Vector2 current_direction;
-
     Vector2 original_direction; //Store Values for Reset
     Vector2 original_position;  //Store Values for Reset
-
+    float current_angle;        //Radians
     float step_value = 1.0f;     //This should translate to the number of pixels moved per tick
     Vector2 step;
-    float energy = 1000;           //This is going to be the value which interacts with the reflectiveness inside the circle object
+    float energy = 10000;           //This is going to be the value which interacts with the reflectiveness inside the circle object
     float original_energy = energy;
     float radiation = 1;
     Circle* last_hit = nullptr;
@@ -152,6 +151,10 @@ public:
     {
         last_hit = new_last_hit;
     }
+    void change_angle(Vector2 new_direction)
+    {
+        original_direction = new_direction;
+    }
 
     void reset_laser()
     {
@@ -159,7 +162,7 @@ public:
         current_position = original_position;
         laser_history.clear();
         direction_history.clear();
-        energy = 100000;
+        energy = 10000;
         step = MathUtil::multiplication(current_direction, step_value);
         last_hit = nullptr;
     }
@@ -172,16 +175,19 @@ void sim_loop(Laser& laser, std::vector<Circle>& circle_arr)
     //laser.render_line();
     for (size_t i = 0; i < circle_arr.size(); i++)
     {
-        //circle_arr[i].render();        
+        //circle_arr[i].render();      
+        
+        
         if (circle_arr[i].did_collide(laser.current_position, laser.laser_history[laser.laser_history.size() - 1]))
         {
             if (laser.last_hit != &circle_arr[i])
             {
                 laser.reflect(circle_arr[i].position);
                 laser.set_last_hit(&circle_arr[i]);
-                std::cout << "Reflected" << "\n";
+                //std::cout << "Reflected" << "\n";
             }
         }
+        
     }
 }
 
@@ -230,8 +236,9 @@ int main()
     SetTargetFPS(60); // Set desired framerate (frames-per-second)
 
     bool simulation_running = false; //Used to start the simulation 
-
-
+    float angle = 0;
+    Vector2 current_starting_direction = { 0, cosf(0) };
+    std::cout << current_starting_direction.y;
 
     float ring_thickness = 3.0f;
     float ring_radius = 20.0f + ring_thickness;
@@ -316,6 +323,14 @@ int main()
         {
             //sim_loop(laser, circle_arr);
         }
+        angle = angle+.1f;
+        float angle_rad = angle * (PI / 180.0f);
+        float cos_value = cosf(angle_rad);
+        float sin_value = sinf(angle_rad);
+
+        current_starting_direction = { angle_rad, cos_value };
+
+        laser.change_angle(current_starting_direction);
       
 
         DrawFPS(5, 0);
