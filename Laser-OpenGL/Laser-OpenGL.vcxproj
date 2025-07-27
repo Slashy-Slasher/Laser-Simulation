@@ -130,6 +130,9 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MathUtil.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="MathUtil.h" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

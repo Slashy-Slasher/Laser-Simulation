@@ -5,57 +5,7 @@
 #include <cmath>
 #include <random>
 
-
-class MathUtil
-{
-public:
-    static float distance_between_Vector2s(Vector2 pos1, Vector2 pos2)
-    {
-        float new_x = (pos2.x - pos1.x) * (pos2.x - pos1.x);
-        float new_y = (pos2.y - pos1.y) * (pos2.y - pos1.y);
-        float distance = std::sqrt(new_x + new_y);
-        return distance;
-    }
-    
-    static Vector2 get_vector2_direction(Vector2 from, Vector2 to)
-    {
-        Vector2 delta = { to.x - from.x, to.y - from.y };
-        float length = sqrtf(delta.x * delta.x + delta.y * delta.y);
-        if (length == 0.0f) return { 0.0f, 0.0f };
-        Vector2 unit_vector = { delta.x / length, delta.y / length };
-        return unit_vector;
-    }
-
-    static Vector2 mirror_direction(Vector2 direction)
-    {
-        float x_direction = direction.x;
-        float y_direction = direction.y;
-        Vector2 inversed_direction = { y_direction, x_direction };
-        return inversed_direction;
-    }
-    static Vector2 multiplication(Vector2 vec, float mult)
-    {
-        vec.x = vec.x * mult;
-        vec.y = vec.y * mult;
-        return vec;
-    }
-    static Vector2 add(Vector2 vec1, Vector2 vec2)
-    {
-        Vector2 new_vec = { vec1.x + vec2.x, vec1.y + vec2.y };
-        return new_vec;
-    }
-    static Vector2 sub(Vector2 vec1, Vector2 vec2)
-    {
-        Vector2 new_vec = { vec1.x - vec2.x, vec1.y - vec2.y };
-        return new_vec;
-    }
-    static float dot_product(Vector2 vec1, Vector2 vec2)
-    {
-        return (vec1.x * vec2.x + vec1.y * vec2.y);
-    }
-
-};
-
+#include "MathUtil.h"
 
 class Circle
 {
@@ -78,7 +28,7 @@ public:
     }
     void render()
     {
-        DrawRing(position, radius, thickness, 0.0f, 360.0f, 10000, BLACK);
+        DrawRing(position, radius, thickness, 0.0f, 360.0f, 100, BLACK);
     }
     bool did_collide(Vector2 current_position, Vector2 previous_position)
     {
@@ -314,7 +264,7 @@ int main()
         */
 
         // Oscillates from -90 to +90
-        angle = angle + .01f;
+        angle = angle + .05f;
       
         float angle_rad = (angle * PI) / 180.0f; // Convert to radians
 
