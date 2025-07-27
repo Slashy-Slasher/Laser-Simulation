@@ -78,11 +78,11 @@ public:
     }
     void render()
     {
-        DrawRing(position, radius, thickness, 0.0f, 360.0f, 100, BLACK);
+        DrawRing(position, radius, thickness, 0.0f, 360.0f, 10000, BLACK);
     }
     bool did_collide(Vector2 current_position, Vector2 previous_position)
     {
-        return CheckCollisionCircleLine(position, (radius), current_position, previous_position);
+        return CheckCollisionCircleLine(position, (radius+thickness_offset+2), current_position, previous_position);
     }
 };
 
