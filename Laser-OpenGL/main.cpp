@@ -102,7 +102,9 @@ public:
     float energy = 10000;           //This is going to be the value which interacts with the reflectiveness inside the circle object
     float original_energy = energy;
     float radiation = 1;
+
     Circle* last_hit = nullptr;
+
     std::vector<Vector2> laser_history;         //Stores position  history
     std::vector<Vector2> direction_history;     //Stores direction history
     Laser(int laser_id, Vector2 laser_start_position, Vector2 laser_direction, float laser_energy)
@@ -172,19 +174,14 @@ public:
 void sim_loop(Laser& laser, std::vector<Circle>& circle_arr)
 {
     laser.extend_laser();
-    //laser.render_line();
     for (size_t i = 0; i < circle_arr.size(); i++)
-    {
-        //circle_arr[i].render();      
-        
-        
+    {        
         if (circle_arr[i].did_collide(laser.current_position, laser.laser_history[laser.laser_history.size() - 1]))
         {
             if (laser.last_hit != &circle_arr[i])
             {
                 laser.reflect(circle_arr[i].position);
                 laser.set_last_hit(&circle_arr[i]);
-                //std::cout << "Reflected" << "\n";
             }
         }
         
@@ -280,15 +277,7 @@ int main()
         DrawText("Created with C++ and Raylib!", screenWidth/2-50, 10, 30, LIGHTGRAY); // Draw 
         render_loop(laser, circle_arr);
 
-        /*
-        if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-            DrawText("Left mouse button is being held down!", 100, 100, 20, RED);
-        }
-        else {
-            DrawText("Left mouse button is not pressed.", 100, 100, 20, DARKGRAY);
-        }
 
-        */
         if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
         {
             DrawText("Left mouse button is being held down!", 100, 100, 20, RED);
@@ -299,7 +288,6 @@ int main()
             for (size_t i = 0; i < circle_arr.size();)
             {
                 Vector2 mouse_pos = GetMousePosition();
-                //circle_arr[i].render();        
 
                 if (circle_arr[i].did_collide(mouse_pos, mouse_pos))
                 {
@@ -318,18 +306,23 @@ int main()
 
         render_entire_loop(laser, circle_arr);
 
-        //std::cout << "Size: " << circle_arr.size() << "\n";
+        /*
         if (simulation_running)
         {
             //sim_loop(laser, circle_arr);
         }
-        angle = angle+.1f;
-        float angle_rad = angle * (PI / 180.0f);
+        */
+
+        // Oscillates from -90 to +90
+        angle = angle + .01f;
+      
+        float angle_rad = (angle * PI) / 180.0f; // Convert to radians
+
+
         float cos_value = cosf(angle_rad);
         float sin_value = sinf(angle_rad);
 
-        current_starting_direction = { angle_rad, cos_value };
-
+        current_starting_direction = { abs(sin_value) , -cos_value };
         laser.change_angle(current_starting_direction);
       
 
