@@ -139,9 +139,10 @@ void sim_loop(Laser& laser, std::vector<Circle>& circle_arr)
 }
 
 
-void render_entire_loop(Laser& laser, std::vector<Circle>& circle_arr)
+void run_entire_loop(Laser& laser, std::vector<Circle>& circle_arr)
 {
     laser.reset_laser();
+
     while (laser.energy > 0)
     {
         sim_loop(laser, circle_arr);
@@ -183,30 +184,37 @@ int main()
     SetTargetFPS(60); // Set desired framerate (frames-per-second)
 
     bool simulation_running = false; //Used to start the simulation 
+    bool laser_type = false;    //Defines the laser as either static or variable movement
+    float step_value = .01;
     float angle = 0;
     Vector2 current_starting_direction = { 0, cosf(0) };
     std::cout << current_starting_direction.y;
 
+
+
     float ring_thickness = 3.0f;
     float ring_radius = 20.0f + ring_thickness;
     
+
+
     /*
-    for (size_t i = 0; i < 40; i++)
-    {
-        float random_offset = 300;
-        Vector2 ring_center = { screenWidth / 2.0f + getRandomFloat(-random_offset, random_offset), screenHeight / 2.0f + getRandomFloat(-random_offset, random_offset)};
-        circle_arr.push_back(Circle(int(i), ring_center, ring_radius));
-    }
+    
     */
+
     float random_offset = 300;
     Vector2 ring_center = { screenWidth / 2.0f , screenHeight / 2.0f };
     //circle_arr.erase(circle_arr.begin()); //Combats a current bug where the first ring is solid black because radius is undefined for the first construction
 
     Vector2 laser_start = { 0, screenHeight / 2 };
     Vector2 laser_direction = { 1, 0};
-
     Laser laser = Laser(0, laser_start, laser_direction, 1);
 
+
+
+    std::cout << GetWorkingDirectory() << std::endl;
+    Shader laserShader = LoadShader("laser_shader.vs", "laser_shader.fs");
+    int laserPosLoc = GetShaderLocation(laserShader, "laserPositions");
+    int laserCountLoc = GetShaderLocation(laserShader, "laserCount");
 
 
     //--------------------------------------------------------------------------------------
@@ -225,7 +233,7 @@ int main()
         ClearBackground(RAYWHITE); // Clear background with a color
 
         DrawText("Created with C++ and Raylib!", screenWidth/2-50, 10, 30, LIGHTGRAY); // Draw 
-        render_loop(laser, circle_arr);
+        //render_loop(laser, circle_arr);
 
 
         if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
@@ -251,29 +259,96 @@ int main()
         }
         if (IsKeyDown(KEY_SPACE))
         {
+            laser.laser_history.clear();
+        }
+        if (IsKeyPressed(KEY_R))
+        {
+            for (size_t i = 0; i < 40; i++)
+            {
+                float random_offset = 300;
+                Vector2 ring_center = { screenWidth / 2.0f + getRandomFloat(-random_offset, random_offset), screenHeight / 2.0f + getRandomFloat(-random_offset, random_offset) };
+                circle_arr.push_back(Circle(int(i), ring_center, ring_radius));
+            }
+        }
+        if (IsKeyPressed(KEY_T))
+        {
+            circle_arr.clear();
+        }
+
+        if (IsKeyPressed(KEY_P))
+        {
             simulation_running = !simulation_running;
         }
 
-        render_entire_loop(laser, circle_arr);
+        if (IsKeyPressed(KEY_UP))
+        {
+            step_value += .01;
+        }
+        if (IsKeyPressed(KEY_DOWN))
+        {
+            step_value -= .01;
+        }
 
         /*
-        if (simulation_running)
-        {
-            //sim_loop(laser, circle_arr);
-        }
+        Currnet Controls
+
+            Space = Change sim_mode to either rotational or static  -- In progress
+            P = Pause the laser at it's current direction
+            R = spawn in random circles
+            T = Clear the array of circles
+            CTRL + C = Close program
+            ESC = Also closes
+            Left Click = Spawn single circle
+            Right Click(Over circle) = clear single "selected" circle
+        
         */
 
-        // Oscillates from -90 to +90
-        angle = angle + .05f;
-      
-        float angle_rad = (angle * PI) / 180.0f; // Convert to radians
 
 
-        float cos_value = cosf(angle_rad);
-        float sin_value = sinf(angle_rad);
+        run_entire_loop(laser, circle_arr);  // Calculate laser path
+        render_loop(laser, circle_arr);      // Draw rings (but not laser)
 
-        current_starting_direction = { abs(sin_value) , -cos_value };
-        laser.change_angle(current_starting_direction);
+        size_t laser_count = std::min(laser.laser_history.size(), size_t(100));
+        float laserPosArray[200];
+
+        for (size_t i = 0; i < laser_count; i++) {
+            laserPosArray[i * 2] = laser.laser_history[i].x;
+            laserPosArray[i * 2 + 1] = laser.laser_history[i].y;
+        }
+        int laser_count_int = static_cast<int>(laser_count);
+
+        // Set laser positions (array of vec2)
+        SetShaderValue(laserShader, laserPosLoc, laserPosArray, SHADER_UNIFORM_VEC2);
+
+        // Set laser count (single int)
+        SetShaderValue(laserShader, laserCountLoc, &laser_count_int, SHADER_UNIFORM_INT);
+
+        // Shader draws glow effect over screen based on laser trail
+        BeginShaderMode(laserShader);
+        DrawRectangle(0, 0, screenWidth, screenHeight, BLACK);
+        EndShaderMode();
+
+
+        
+        if (simulation_running)
+        {
+            sim_loop(laser, circle_arr);
+        }
+        else
+        {
+            // Oscillates from -90 to +90
+            angle = angle + step_value;
+
+            float angle_rad = (angle * PI) / 180.0f; // Convert to radians
+
+
+            float cos_value = cosf(angle_rad);
+            float sin_value = sinf(angle_rad);
+
+            current_starting_direction = { abs(sin_value) , -cos_value };
+            laser.change_angle(current_starting_direction);
+        }
+        
       
 
         DrawFPS(5, 0);
@@ -284,6 +359,8 @@ int main()
 
     // De-Initialization
     //--------------------------------------------------------------------------------------
+    UnloadShader(laserShader);
+
     CloseWindow(); // Close window and unload OpenGL context
     //--------------------------------------------------------------------------------------
 
