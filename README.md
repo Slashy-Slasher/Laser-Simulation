@@ -19,7 +19,14 @@ This is what the program looked like on the first day of its creation:
 <p align="center">
   <img src="Laser-Sim2.gif" alt="Quadtree Demo" />
 </p>
-In a way I find the slower laser more interesting to look at, so I'm leaving it up on this page
+
+This is the current version of the simulation
+<p align="center">
+  <img src="updated_laser_cropped.gif" alt="Quadtree Demo" />
+</p>
+
+
+Personally I find the slower laser more interesting to look at, so I'm leaving it up on this page
 
 
 # What I've learned
