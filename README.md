@@ -20,7 +20,7 @@ This is what the program looked like on the first day of its creation:
   <img src="Laser-Sim2.gif" alt="Quadtree Demo" />
 </p>
 
-This is the current version of the simulation
+This is the current version of the simulation(10FPS)
 <p align="center">
   <img src="updated_laser_cropped.gif" alt="Quadtree Demo" />
 </p>
